@@ -242,31 +242,55 @@
             return base;
         }
 
-        // Function to create a base that starts at a corner and extends outward
-        function createCornerBase(cornerPos, dirX, dirZ) {
-            const baseGeometry = new THREE.PlaneGeometry(baseSize, baseSize);
-            const baseMaterial = new THREE.MeshBasicMaterial({ 
+        // Function to create an L-shaped base that starts at a corner
+        function createLShapedBase(cornerPos, dirX, dirZ) {
+            // Create a shape for the L-shaped base
+            const shape = new THREE.Shape();
+            
+            // Start at the corner of the infield
+            shape.moveTo(0, 0);
+            
+            // Draw the L shape (60cm in each direction)
+            if (dirX > 0 && dirZ < 0) {
+                // For third base (extending right and down)
+                shape.lineTo(baseSize, 0); // Right
+                shape.lineTo(baseSize, -baseSize); // Down
+                shape.lineTo(0, -baseSize); // Left
+                shape.lineTo(0, 0); // Back to start
+            } else if (dirX < 0 && dirZ > 0) {
+                // For first base (extending left and up)
+                shape.lineTo(0, baseSize); // Up
+                shape.lineTo(-baseSize, baseSize); // Left
+                shape.lineTo(-baseSize, 0); // Down
+                shape.lineTo(0, 0); // Back to start
+            } else if (dirX > 0 && dirZ > 0) {
+                // For second base (extending right and up)
+                shape.lineTo(baseSize, 0); // Right
+                shape.lineTo(baseSize, baseSize); // Up
+                shape.lineTo(0, baseSize); // Left
+                shape.lineTo(0, 0); // Back to start
+            }
+            
+            const geometry = new THREE.ShapeGeometry(shape);
+            const material = new THREE.MeshBasicMaterial({ 
                 color: 0xFFFFFF, 
                 side: THREE.DoubleSide 
             });
-            const base = new THREE.Mesh(baseGeometry, baseMaterial);
+            
+            const base = new THREE.Mesh(geometry, material);
             base.rotation.x = -Math.PI / 2;
             
-            // Position the base so one of its corners is at the infield corner
-            // and it extends outward in the specified direction
-            base.position.set(
-                cornerPos.x + (dirX * baseSize/2), // Shift center in X direction
-                0.02,
-                cornerPos.z + (dirZ * baseSize/2)  // Shift center in Z direction
-            );
+            // Position the base so its corner is exactly at the infield corner
+            base.position.copy(cornerPos);
+            base.position.y = 0.02;
             
             // Add a border to the base
-            const baseEdgeGeometry = new THREE.EdgesGeometry(baseGeometry);
-            const baseEdges = new THREE.LineSegments(
-                baseEdgeGeometry,
+            const edges = new THREE.EdgesGeometry(geometry);
+            const line = new THREE.LineSegments(
+                edges,
                 new THREE.LineBasicMaterial({ color: 0x000000 })
             );
-            base.add(baseEdges);
+            base.add(line);
             
             return base;
         }
@@ -299,20 +323,20 @@
         const homePlate = createHomePlate();
         scene.add(homePlate);
 
-        // Create first base - starts at corner and extends up and left
-        const firstBase = createCornerBase(firstBaseCorner, -1, 1);
+        // Create first base - L-shaped, starting at top-left corner and extending outward
+        const firstBase = createLShapedBase(firstBaseCorner, -1, 1);
         scene.add(firstBase);
-        
-        // Create safety base (in foul territory next to first base)
-        const firstBasePos = new THREE.Vector3(
+        const firstPos = new THREE.Vector3(
             firstBaseCorner.x - baseSize/2,
             0.02,
             firstBaseCorner.z + baseSize/2
         );
+        
+        // Create safety base (in foul territory next to first base)
         const safetyBasePos = new THREE.Vector3(
-            firstBasePos.x - baseSize, 
-            firstBasePos.y, 
-            firstBasePos.z
+            firstPos.x - baseSize, 
+            firstPos.y, 
+            firstPos.z
         );
         const safetyBase = createBaseMarker(safetyBasePos);
         safetyBase.material = new THREE.MeshBasicMaterial({ 
@@ -321,27 +345,18 @@
         });
         scene.add(safetyBase);
 
-        // Create second base - starts at corner and extends up and right
-        const secondBase = createCornerBase(secondBaseCorner, 1, 1);
+        // Create second base - L-shaped, starting at top-right corner and extending outward
+        const secondBase = createLShapedBase(secondBaseCorner, 1, 1);
         scene.add(secondBase);
-
-        // Create third base - starts at corner and extends down and right
-        const thirdBase = createCornerBase(thirdBaseCorner, 1, -1);
-        scene.add(thirdBase);
-        
-        // Update positions for labels
-        const firstPos = new THREE.Vector3(
-            firstBaseCorner.x - baseSize/2,
-            0.02,
-            firstBaseCorner.z + baseSize/2
-        );
-        
         const secondPos = new THREE.Vector3(
             secondBaseCorner.x + baseSize/2,
             0.02,
             secondBaseCorner.z + baseSize/2
         );
-        
+
+        // Create third base - L-shaped, starting at bottom-right corner and extending outward
+        const thirdBase = createLShapedBase(thirdBaseCorner, 1, -1);
+        scene.add(thirdBase);
         const thirdPos = new THREE.Vector3(
             thirdBaseCorner.x + baseSize/2,
             0.02,
