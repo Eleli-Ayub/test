@@ -60,7 +60,7 @@
         const infieldSize = 13; // 13m x 13m (infield square)
         const battersBoxSize = 3; // 3m x 3m
         const noHitZoneDistance = 4.5; // 4.5m from home plate (3m for U-15)
-        const baseSize = 0.6; // 60cm x 60cm
+        const baseSize = 0.6; // 60cm x 60cm for all bases
         
         // Half sizes for positioning
         const outerHalfSize = outerFieldSize / 2;
@@ -169,21 +169,93 @@
         scene.add(infieldLine);
 
         // Calculate base positions according to the official specifications
-        // Home plate at origin
-        const homePos = new THREE.Vector3(0, 0.02, 0);
+        // Home plate at the corner of the infield
+        const homePos = new THREE.Vector3(-inHalfSize, 0.02, -inHalfSize);
         
-        // First base at the corner of the infield
-        const firstPos = new THREE.Vector3(inHalfSize, 0.02, -inHalfSize);
+        // First base is now to the left of home plate (swapped with third)
+        const firstPos = new THREE.Vector3(-inHalfSize, 0.02, inHalfSize);
         
-        // Second base at the corner of the infield
+        // Second base is diagonal from home plate
         const secondPos = new THREE.Vector3(inHalfSize, 0.02, inHalfSize);
         
-        // Third base at the corner of the infield
-        const thirdPos = new THREE.Vector3(-inHalfSize, 0.02, inHalfSize);
+        // Third base is now to the right of home plate (swapped with first)
+        const thirdPos = new THREE.Vector3(inHalfSize, 0.02, -inHalfSize);
 
-        // No-hit zone removed
+        // Function to create standard base markers - exactly 60cm x 60cm
+        function createBaseMarker(position) {
+            const baseGeometry = new THREE.PlaneGeometry(baseSize, baseSize);
+            const baseMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xFFFFFF, 
+                side: THREE.DoubleSide 
+            });
+            const base = new THREE.Mesh(baseGeometry, baseMaterial);
+            base.rotation.x = -Math.PI / 2;
+            base.position.copy(position);
+            base.position.y = 0.02;
+            
+            // Add a border to the base
+            const baseEdgeGeometry = new THREE.EdgesGeometry(baseGeometry);
+            const baseEdges = new THREE.LineSegments(
+                baseEdgeGeometry,
+                new THREE.LineBasicMaterial({ color: 0x000000 })
+            );
+            base.add(baseEdges);
+            
+            return base;
+        }
+
+        // Function to create home plate - also 60cm x 60cm
+        function createHomePlate() {
+            // Using standard base size for home plate as well (60cm x 60cm)
+            const baseGeometry = new THREE.PlaneGeometry(baseSize, baseSize);
+            const baseMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xFFFFFF, 
+                side: THREE.DoubleSide 
+            });
+            const homePlate = new THREE.Mesh(baseGeometry, baseMaterial);
+            homePlate.rotation.x = -Math.PI / 2;
+            homePlate.position.copy(homePos);
+            homePlate.position.y = 0.02;
+            
+            // Add a border to the base
+            const baseEdgeGeometry = new THREE.EdgesGeometry(baseGeometry);
+            const baseEdges = new THREE.LineSegments(
+                baseEdgeGeometry,
+                new THREE.LineBasicMaterial({ color: 0x000000 })
+            );
+            homePlate.add(baseEdges);
+            
+            return homePlate;
+        }
+
+        // Create home plate - 60cm x 60cm
+        const homePlate = createHomePlate();
+        scene.add(homePlate);
+
+        // Create first base - 60cm x 60cm
+        const firstBase = createBaseMarker(firstPos);
+        scene.add(firstBase);
         
-        // All bases removed from inside the infield
+        // Create safety base - 60cm x 60cm
+        const safetyBasePos = new THREE.Vector3(
+            firstPos.x - baseSize, 
+            firstPos.y, 
+            firstPos.z
+        );
+        const safetyBase = createBaseMarker(safetyBasePos);
+        safetyBase.material = new THREE.MeshBasicMaterial({ 
+            color: 0xFFA500, // Orange for visibility
+            side: THREE.DoubleSide 
+        });
+        scene.add(safetyBase);
+
+        // Create second base - 60cm x 60cm
+        const secondBase = createBaseMarker(secondPos);
+        scene.add(secondBase);
+
+        // Create third base - 60cm x 60cm
+        const thirdBase = createBaseMarker(thirdPos);
+        scene.add(thirdBase);
 
         // Create dimension labels
         const dimensionLabels = new THREE.Group();
@@ -193,11 +265,46 @@
         dimensionLabels.visible = false;
 
         // Create base name labels
+        function createBaseLabel(text, position) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 256;
+            canvas.height = 128;
+            
+            context.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            
+            context.font = 'bold 36px Arial';
+            context.fillStyle = 'black';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText(text, canvas.width/2, canvas.height/2);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.MeshBasicMaterial({
+                map: texture,
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+            
+            const geometry = new THREE.PlaneGeometry(2, 1);
+            const label = new THREE.Mesh(geometry, material);
+            label.position.copy(position);
+            label.position.y = 0.1;
+            label.rotation.x = -Math.PI / 2;
+            return label;
+        }
+
+        // Create base name labels - positioned outside the infield
         const baseLabels = new THREE.Group();
-        // All base name labels removed
+        baseLabels.add(createBaseLabel('Home Plate', new THREE.Vector3(homePos.x - 1.5, homePos.y, homePos.z - 1.5)));
+        baseLabels.add(createBaseLabel('1st Base', new THREE.Vector3(firstPos.x - 1.5, firstPos.y, firstPos.z + 1.5)));
+        baseLabels.add(createBaseLabel('Safety Base', new THREE.Vector3(safetyBasePos.x - 1.5, safetyBasePos.y, safetyBasePos.z + 1.5)));
+        baseLabels.add(createBaseLabel('2nd Base', new THREE.Vector3(secondPos.x + 1.5, secondPos.y, secondPos.z + 1.5)));
+        baseLabels.add(createBaseLabel('3rd Base', new THREE.Vector3(thirdPos.x + 1.5, thirdPos.y, thirdPos.z - 1.5)));
         
         scene.add(baseLabels);
-        baseLabels.visible = false;
+        baseLabels.visible = true; // Set to true to show labels by default
 
         // Add toggle button functionality
         const dimensionToggle = document.getElementById('dimensionToggle');
@@ -208,7 +315,6 @@
 
         const baseNamesToggle = document.getElementById('baseNamesToggle');
         baseNamesToggle.addEventListener('click', () => {
-            // Toggle functionality kept but no labels will appear
             baseLabels.visible = !baseLabels.visible;
         });
 
