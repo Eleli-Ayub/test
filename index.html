@@ -242,71 +242,49 @@
             return base;
         }
 
-        // Function to create an L-shaped base that starts at a corner
-        function createLShapedBase(cornerPos, dirX, dirZ) {
-            // Create a shape for the L-shaped base
-            const shape = new THREE.Shape();
-            
-            // Start at the corner of the infield
-            shape.moveTo(0, 0);
-            
-            // Draw the L shape (60cm in each direction)
-            if (dirX > 0 && dirZ < 0) {
-                // For third base (extending right and down)
-                shape.lineTo(baseSize, 0); // Right
-                shape.lineTo(baseSize, -baseSize); // Down
-                shape.lineTo(0, -baseSize); // Left
-                shape.lineTo(0, 0); // Back to start
-            } else if (dirX < 0 && dirZ > 0) {
-                // For first base (extending left and up)
-                shape.lineTo(0, baseSize); // Up
-                shape.lineTo(-baseSize, baseSize); // Left
-                shape.lineTo(-baseSize, 0); // Down
-                shape.lineTo(0, 0); // Back to start
-            } else if (dirX > 0 && dirZ > 0) {
-                // For second base (extending right and up)
-                shape.lineTo(baseSize, 0); // Right
-                shape.lineTo(baseSize, baseSize); // Up
-                shape.lineTo(0, baseSize); // Left
-                shape.lineTo(0, 0); // Back to start
-            }
-            
-            const geometry = new THREE.ShapeGeometry(shape);
-            const material = new THREE.MeshBasicMaterial({ 
-                color: 0xFFFFFF, 
-                side: THREE.DoubleSide 
-            });
-            
-            const base = new THREE.Mesh(geometry, material);
-            base.rotation.x = -Math.PI / 2;
-            
-            // Position the base so its corner is exactly at the infield corner
-            base.position.copy(cornerPos);
-            base.position.y = 0.02;
-            
-            // Add a border to the base
-            const edges = new THREE.EdgesGeometry(geometry);
-            const line = new THREE.LineSegments(
-                edges,
-                new THREE.LineBasicMaterial({ color: 0x000000 })
-            );
-            base.add(line);
-            
-            return base;
-        }
-
-        // Function to create home plate - also 60cm x 60cm
-        function createHomePlate() {
-            // Using standard base size for home plate as well (60cm x 60cm)
+        // Function to create square bases that start at the corners
+        function createBase(cornerPos, baseType) {
+            // All bases will be square-shaped, 60cm x 60cm
             const baseGeometry = new THREE.PlaneGeometry(baseSize, baseSize);
             const baseMaterial = new THREE.MeshBasicMaterial({ 
                 color: 0xFFFFFF, 
                 side: THREE.DoubleSide 
             });
-            const homePlate = new THREE.Mesh(baseGeometry, baseMaterial);
-            homePlate.rotation.x = -Math.PI / 2;
-            homePlate.position.copy(homePos);
-            homePlate.position.y = 0.02;
+            
+            const base = new THREE.Mesh(baseGeometry, baseMaterial);
+            base.rotation.x = -Math.PI / 2;
+            
+            // Position the base so one of its corners is at the infield corner
+            // The position depends on which base it is
+            if (baseType === 'home') {
+                // Home plate at bottom-left corner
+                base.position.set(
+                    cornerPos.x + baseSize/2, 
+                    0.02, 
+                    cornerPos.z + baseSize/2
+                );
+            } else if (baseType === 'first') {
+                // First base at top-left corner, extending left and up
+                base.position.set(
+                    cornerPos.x - baseSize/2, 
+                    0.02, 
+                    cornerPos.z + baseSize/2
+                );
+            } else if (baseType === 'second') {
+                // Second base at top-right corner, extending right and up
+                base.position.set(
+                    cornerPos.x + baseSize/2, 
+                    0.02, 
+                    cornerPos.z + baseSize/2
+                );
+            } else if (baseType === 'third') {
+                // Third base at bottom-right corner, extending right and down
+                base.position.set(
+                    cornerPos.x + baseSize/2, 
+                    0.02, 
+                    cornerPos.z - baseSize/2
+                );
+            }
             
             // Add a border to the base
             const baseEdgeGeometry = new THREE.EdgesGeometry(baseGeometry);
@@ -314,17 +292,17 @@
                 baseEdgeGeometry,
                 new THREE.LineBasicMaterial({ color: 0x000000 })
             );
-            homePlate.add(baseEdges);
+            base.add(baseEdges);
             
-            return homePlate;
+            return base;
         }
 
         // Create home plate
-        const homePlate = createHomePlate();
+        const homePlate = createBase(homePos, 'home');
         scene.add(homePlate);
 
-        // Create first base - L-shaped, starting at top-left corner and extending outward
-        const firstBase = createLShapedBase(firstBaseCorner, -1, 1);
+        // Create first base - square, starting at top-left corner and extending outward
+        const firstBase = createBase(firstBaseCorner, 'first');
         scene.add(firstBase);
         const firstPos = new THREE.Vector3(
             firstBaseCorner.x - baseSize/2,
@@ -345,8 +323,8 @@
         });
         scene.add(safetyBase);
 
-        // Create second base - L-shaped, starting at top-right corner and extending outward
-        const secondBase = createLShapedBase(secondBaseCorner, 1, 1);
+        // Create second base - square, starting at top-right corner and extending outward
+        const secondBase = createBase(secondBaseCorner, 'second');
         scene.add(secondBase);
         const secondPos = new THREE.Vector3(
             secondBaseCorner.x + baseSize/2,
@@ -354,8 +332,8 @@
             secondBaseCorner.z + baseSize/2
         );
 
-        // Create third base - L-shaped, starting at bottom-right corner and extending outward
-        const thirdBase = createLShapedBase(thirdBaseCorner, 1, -1);
+        // Create third base - square, starting at bottom-right corner and extending outward
+        const thirdBase = createBase(thirdBaseCorner, 'third');
         scene.add(thirdBase);
         const thirdPos = new THREE.Vector3(
             thirdBaseCorner.x + baseSize/2,
