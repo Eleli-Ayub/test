@@ -172,22 +172,29 @@
         // Home plate at the corner of the infield
         const homePos = new THREE.Vector3(-inHalfSize, 0.02, -inHalfSize);
         
-        // First base is now to the left of home plate (swapped with third)
-        const firstPos = new THREE.Vector3(-inHalfSize, 0.02, inHalfSize);
-        
-        // Second base is diagonal from home plate
-        const secondPos = new THREE.Vector3(inHalfSize, 0.02, inHalfSize);
-        
-        // Third base is now to the right of home plate (swapped with first)
-        const thirdPos = new THREE.Vector3(inHalfSize, 0.02, -inHalfSize);
+        // The infield corners
+        const firstBaseCorner = new THREE.Vector3(-inHalfSize, 0.02, inHalfSize);
+        const secondBaseCorner = new THREE.Vector3(inHalfSize, 0.02, inHalfSize);
+        const thirdBaseCorner = new THREE.Vector3(inHalfSize, 0.02, -inHalfSize);
 
-        // Add foul lines extending from home plate to the outfield
+        // Third base line (from home to right edge of fair territory)
+        const thirdBaseLinePoints = [];
+        thirdBaseLinePoints.push(new THREE.Vector3(homePos.x, 0.03, homePos.z)); // Start at home plate
+        
+        // For the third base line, we'll go straight right from home plate to the edge of fair territory
+        thirdBaseLinePoints.push(new THREE.Vector3(fairHalfSize, 0.03, homePos.z));
+        
+        const thirdBaseLineGeometry = new THREE.BufferGeometry().setFromPoints(thirdBaseLinePoints);
+        const thirdBaseLine = new THREE.Line(thirdBaseLineGeometry, new THREE.LineBasicMaterial({ color: 0xFFFFFF, linewidth: 2 }));
+        scene.add(thirdBaseLine);
+
+        // Add foul lines extending from home plate to the edge of the field
         // First base line (from home to first and beyond to the edge of fair territory)
         const firstBaseLinePoints = [];
         firstBaseLinePoints.push(new THREE.Vector3(homePos.x, 0.03, homePos.z)); // Start at home plate
         
-        // Calculate direction vector from home to first
-        const homeToFirstDir = new THREE.Vector3().subVectors(firstPos, homePos).normalize();
+        // Calculate direction vector from home to first base corner
+        const homeToFirstDir = new THREE.Vector3().subVectors(firstBaseCorner, homePos).normalize();
         
         // Find where the line intersects with the edge of the fair territory
         // For the first base line, we need to find where it intersects with the top edge of fair territory (z = fairHalfSize)
@@ -212,18 +219,7 @@
         const firstBaseLine = new THREE.Line(firstBaseLineGeometry, new THREE.LineBasicMaterial({ color: 0xFFFFFF, linewidth: 2 }));
         scene.add(firstBaseLine);
 
-        // Third base line (from home to right edge of fair territory)
-        const thirdBaseLinePoints = [];
-        thirdBaseLinePoints.push(new THREE.Vector3(homePos.x, 0.03, homePos.z)); // Start at home plate
-        
-        // For the third base line, we'll go straight right from home plate to the edge of fair territory
-        thirdBaseLinePoints.push(new THREE.Vector3(fairHalfSize, 0.03, homePos.z));
-        
-        const thirdBaseLineGeometry = new THREE.BufferGeometry().setFromPoints(thirdBaseLinePoints);
-        const thirdBaseLine = new THREE.Line(thirdBaseLineGeometry, new THREE.LineBasicMaterial({ color: 0xFFFFFF, linewidth: 2 }));
-        scene.add(thirdBaseLine);
-
-        // Function to create standard base markers - exactly 60cm x 60cm
+        // Function to create standard base marker - exactly 60cm x 60cm
         function createBaseMarker(position) {
             const baseGeometry = new THREE.PlaneGeometry(baseSize, baseSize);
             const baseMaterial = new THREE.MeshBasicMaterial({ 
@@ -234,6 +230,35 @@
             base.rotation.x = -Math.PI / 2;
             base.position.copy(position);
             base.position.y = 0.02;
+            
+            // Add a border to the base
+            const baseEdgeGeometry = new THREE.EdgesGeometry(baseGeometry);
+            const baseEdges = new THREE.LineSegments(
+                baseEdgeGeometry,
+                new THREE.LineBasicMaterial({ color: 0x000000 })
+            );
+            base.add(baseEdges);
+            
+            return base;
+        }
+
+        // Function to create a base that starts at a corner and extends outward
+        function createCornerBase(cornerPos, dirX, dirZ) {
+            const baseGeometry = new THREE.PlaneGeometry(baseSize, baseSize);
+            const baseMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xFFFFFF, 
+                side: THREE.DoubleSide 
+            });
+            const base = new THREE.Mesh(baseGeometry, baseMaterial);
+            base.rotation.x = -Math.PI / 2;
+            
+            // Position the base so one of its corners is at the infield corner
+            // and it extends outward in the specified direction
+            base.position.set(
+                cornerPos.x + (dirX * baseSize/2), // Shift center in X direction
+                0.02,
+                cornerPos.z + (dirZ * baseSize/2)  // Shift center in Z direction
+            );
             
             // Add a border to the base
             const baseEdgeGeometry = new THREE.EdgesGeometry(baseGeometry);
@@ -270,19 +295,24 @@
             return homePlate;
         }
 
-        // Create home plate - 60cm x 60cm
+        // Create home plate
         const homePlate = createHomePlate();
         scene.add(homePlate);
 
-        // Create first base - 60cm x 60cm
-        const firstBase = createBaseMarker(firstPos);
+        // Create first base - starts at corner and extends up and left
+        const firstBase = createCornerBase(firstBaseCorner, -1, 1);
         scene.add(firstBase);
         
-        // Create safety base - 60cm x 60cm
+        // Create safety base (in foul territory next to first base)
+        const firstBasePos = new THREE.Vector3(
+            firstBaseCorner.x - baseSize/2,
+            0.02,
+            firstBaseCorner.z + baseSize/2
+        );
         const safetyBasePos = new THREE.Vector3(
-            firstPos.x - baseSize, 
-            firstPos.y, 
-            firstPos.z
+            firstBasePos.x - baseSize, 
+            firstBasePos.y, 
+            firstBasePos.z
         );
         const safetyBase = createBaseMarker(safetyBasePos);
         safetyBase.material = new THREE.MeshBasicMaterial({ 
@@ -291,13 +321,32 @@
         });
         scene.add(safetyBase);
 
-        // Create second base - 60cm x 60cm
-        const secondBase = createBaseMarker(secondPos);
+        // Create second base - starts at corner and extends up and right
+        const secondBase = createCornerBase(secondBaseCorner, 1, 1);
         scene.add(secondBase);
 
-        // Create third base - 60cm x 60cm
-        const thirdBase = createBaseMarker(thirdPos);
+        // Create third base - starts at corner and extends down and right
+        const thirdBase = createCornerBase(thirdBaseCorner, 1, -1);
         scene.add(thirdBase);
+        
+        // Update positions for labels
+        const firstPos = new THREE.Vector3(
+            firstBaseCorner.x - baseSize/2,
+            0.02,
+            firstBaseCorner.z + baseSize/2
+        );
+        
+        const secondPos = new THREE.Vector3(
+            secondBaseCorner.x + baseSize/2,
+            0.02,
+            secondBaseCorner.z + baseSize/2
+        );
+        
+        const thirdPos = new THREE.Vector3(
+            thirdBaseCorner.x + baseSize/2,
+            0.02,
+            thirdBaseCorner.z - baseSize/2
+        );
 
         // Create dimension labels
         const dimensionLabels = new THREE.Group();
