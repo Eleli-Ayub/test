@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baseball5 Field</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: Arial, sans-serif;
+        }
+        #info {
+            position: absolute;
+            bottom: 10px;
+            width: 100%;
+            text-align: center;
+            color: white;
+            background-color: rgba(0,0,0,0.5);
+            padding: 5px;
+        }
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toggle-btn {
+            padding: 10px 20px;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            min-width: 200px;
+            text-align: left;
+        }
+        .toggle-btn:hover {
+            background-color: rgba(0,0,0,0.9);
+        }
+    </style>
+</head>
+<body>
+    <div id="info">Baseball5 Field - Drag to rotate, scroll to zoom</div>
+    <div id="controls">
+        <button id="dimensionToggle" class="toggle-btn">Toggle Dimensions</button>
+        <button id="baseNamesToggle" class="toggle-btn">Toggle Base Names</button>
+    </div>
+
+    <script>
+        // Field dimensions (in meters)
+        const outerFieldSize = 21; // 21m x 21m (including foul territory)
+        const fairFieldSize = 18; // 18m x 18m (fair territory)
+        const infieldSize = 13; // 13m x 13m (infield square)
+        const battersBoxSize = 3; // 3m x 3m
+        const noHitZoneDistance = 4.5; // 4.5m from home plate (3m for U-15)
+        const baseSize = 0.6; // 60cm x 60cm
+        
+        // Half sizes for positioning
+        const outerHalfSize = outerFieldSize / 2;
+        const fairHalfSize = fairFieldSize / 2;
+        const inHalfSize = infieldSize / 2;
+        
+        // Set up scene
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB); // Sky blue background
+        
+        // Set up camera
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 20, 20);
+        camera.lookAt(0, 0, 0);
+        
+        // Set up renderer
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        
+        // Add orbit controls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.25;
+        
+        // Add ambient light
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
+        
+        // Add directional light (sun)
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        directionalLight.position.set(10, 20, 10);
+        scene.add(directionalLight);
+
+        // Create ground plane with colored regions
+        // Outer field (light gray)
+        const outerFieldGeometry = new THREE.PlaneGeometry(outerFieldSize, outerFieldSize);
+        const outerFieldMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xCCCCCC, 
+            side: THREE.DoubleSide 
+        });
+        const outerField = new THREE.Mesh(outerFieldGeometry, outerFieldMaterial);
+        outerField.rotation.x = -Math.PI / 2;
+        outerField.position.y = 0;
+        scene.add(outerField);
+
+        // Fair territory (green)
+        const fairFieldGeometry = new THREE.PlaneGeometry(fairFieldSize, fairFieldSize);
+        const fairFieldMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0x90EE90, // Light green
+            side: THREE.DoubleSide 
+        });
+        const fairField = new THREE.Mesh(fairFieldGeometry, fairFieldMaterial);
+        fairField.rotation.x = -Math.PI / 2;
+        fairField.position.y = 0.005;
+        scene.add(fairField);
+
+        // Infield (darker green)
+        const infieldGeometry = new THREE.PlaneGeometry(infieldSize, infieldSize);
+        const infieldMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0x228B22, // Forest green
+            side: THREE.DoubleSide 
+        });
+        const infield = new THREE.Mesh(infieldGeometry, infieldMaterial);
+        infield.rotation.x = -Math.PI / 2;
+        infield.position.y = 0.01;
+        scene.add(infield);
+
+        // Draw field lines
+        const linesMaterial = new THREE.LineBasicMaterial({ color: 0xFFFFFF, linewidth: 2 });
+
+        // Outer field lines
+        const outerFieldLines = [];
+        outerFieldLines.push(new THREE.Vector3(-outerHalfSize, 0.02, -outerHalfSize));
+        outerFieldLines.push(new THREE.Vector3(outerHalfSize, 0.02, -outerHalfSize));
+        outerFieldLines.push(new THREE.Vector3(outerHalfSize, 0.02, outerHalfSize));
+        outerFieldLines.push(new THREE.Vector3(-outerHalfSize, 0.02, outerHalfSize));
+        outerFieldLines.push(new THREE.Vector3(-outerHalfSize, 0.02, -outerHalfSize));
+        
+        const outerFieldLineGeometry = new THREE.BufferGeometry().setFromPoints(outerFieldLines);
+        const outerFieldLine = new THREE.Line(outerFieldLineGeometry, linesMaterial);
+        scene.add(outerFieldLine);
+
+        // Fair territory lines
+        const fairFieldLines = [];
+        fairFieldLines.push(new THREE.Vector3(-fairHalfSize, 0.02, -fairHalfSize));
+        fairFieldLines.push(new THREE.Vector3(fairHalfSize, 0.02, -fairHalfSize));
+        fairFieldLines.push(new THREE.Vector3(fairHalfSize, 0.02, fairHalfSize));
+        fairFieldLines.push(new THREE.Vector3(-fairHalfSize, 0.02, fairHalfSize));
+        fairFieldLines.push(new THREE.Vector3(-fairHalfSize, 0.02, -fairHalfSize));
+        
+        const fairFieldLineGeometry = new THREE.BufferGeometry().setFromPoints(fairFieldLines);
+        const fairFieldLine = new THREE.Line(fairFieldLineGeometry, linesMaterial);
+        scene.add(fairFieldLine);
+
+        // Infield lines
+        const infieldLines = [];
+        infieldLines.push(new THREE.Vector3(-inHalfSize, 0.02, -inHalfSize));
+        infieldLines.push(new THREE.Vector3(inHalfSize, 0.02, -inHalfSize));
+        infieldLines.push(new THREE.Vector3(inHalfSize, 0.02, inHalfSize));
+        infieldLines.push(new THREE.Vector3(-inHalfSize, 0.02, inHalfSize));
+        infieldLines.push(new THREE.Vector3(-inHalfSize, 0.02, -inHalfSize));
+        
+        const infieldLineGeometry = new THREE.BufferGeometry().setFromPoints(infieldLines);
+        const infieldLine = new THREE.Line(infieldLineGeometry, linesMaterial);
+        scene.add(infieldLine);
+
+        // Calculate base positions according to the official specifications
+        // Home plate at origin
+        const homePos = new THREE.Vector3(0, 0.02, 0);
+        
+        // First base at the corner of the infield
+        const firstPos = new THREE.Vector3(inHalfSize, 0.02, -inHalfSize);
+        
+        // Second base at the corner of the infield
+        const secondPos = new THREE.Vector3(inHalfSize, 0.02, inHalfSize);
+        
+        // Third base at the corner of the infield
+        const thirdPos = new THREE.Vector3(-inHalfSize, 0.02, inHalfSize);
+
+        // No-hit zone removed
+        
+        // All bases removed from inside the infield
+
+        // Create dimension labels
+        const dimensionLabels = new THREE.Group();
+        // All dimension labels removed
+
+        scene.add(dimensionLabels);
+        dimensionLabels.visible = false;
+
+        // Create base name labels
+        const baseLabels = new THREE.Group();
+        // All base name labels removed
+        
+        scene.add(baseLabels);
+        baseLabels.visible = false;
+
+        // Add toggle button functionality
+        const dimensionToggle = document.getElementById('dimensionToggle');
+        dimensionToggle.addEventListener('click', () => {
+            // Toggle functionality kept but no labels will appear
+            dimensionLabels.visible = !dimensionLabels.visible;
+        });
+
+        const baseNamesToggle = document.getElementById('baseNamesToggle');
+        baseNamesToggle.addEventListener('click', () => {
+            // Toggle functionality kept but no labels will appear
+            baseLabels.visible = !baseLabels.visible;
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        animate();
+    </script>
+</body>
+</html>
