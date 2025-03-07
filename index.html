@@ -181,7 +181,7 @@
         // Third base is now to the right of home plate (swapped with first)
         const thirdPos = new THREE.Vector3(inHalfSize, 0.02, -inHalfSize);
 
-        // Add foul lines extending from home plate to the edge of the field
+        // Add foul lines extending from home plate to the outfield
         // First base line (from home to first and beyond to the edge of fair territory)
         const firstBaseLinePoints = [];
         firstBaseLinePoints.push(new THREE.Vector3(homePos.x, 0.03, homePos.z)); // Start at home plate
@@ -190,9 +190,6 @@
         const homeToFirstDir = new THREE.Vector3().subVectors(firstPos, homePos).normalize();
         
         // Find where the line intersects with the edge of the fair territory
-        // Since we're going from bottom-left to top-left, the line will intersect with the left edge of fair territory
-        // The left edge is at x = -fairHalfSize, so we need to find the z value where the line crosses this edge
-        
         // For the first base line, we need to find where it intersects with the top edge of fair territory (z = fairHalfSize)
         const t1 = (fairHalfSize - homePos.z) / homeToFirstDir.z;
         const firstBaseLineEnd = new THREE.Vector3(
@@ -201,28 +198,26 @@
             fairHalfSize // Top edge of fair territory
         );
         
+        // Make sure the line doesn't extend beyond the edge of the field
+        if (firstBaseLineEnd.x < -fairHalfSize) {
+            // If it would extend beyond the left edge, cap it at the left edge
+            const t2 = (-fairHalfSize - homePos.x) / homeToFirstDir.x;
+            firstBaseLineEnd.x = -fairHalfSize;
+            firstBaseLineEnd.z = homePos.z + homeToFirstDir.z * t2;
+        }
+        
         firstBaseLinePoints.push(firstBaseLineEnd);
         
         const firstBaseLineGeometry = new THREE.BufferGeometry().setFromPoints(firstBaseLinePoints);
         const firstBaseLine = new THREE.Line(firstBaseLineGeometry, new THREE.LineBasicMaterial({ color: 0xFFFFFF, linewidth: 2 }));
         scene.add(firstBaseLine);
-        
-        // Third base line (from home to third and beyond to the edge of fair territory)
+
+        // Third base line (from home to right edge of fair territory)
         const thirdBaseLinePoints = [];
         thirdBaseLinePoints.push(new THREE.Vector3(homePos.x, 0.03, homePos.z)); // Start at home plate
         
-        // Calculate direction vector from home to third
-        const homeToThirdDir = new THREE.Vector3().subVectors(thirdPos, homePos).normalize();
-        
-        // For the third base line, we need to find where it intersects with the right edge of fair territory (x = fairHalfSize)
-        const t2 = (fairHalfSize - homePos.x) / homeToThirdDir.x;
-        const thirdBaseLineEnd = new THREE.Vector3(
-            fairHalfSize, // Right edge of fair territory
-            0.03,
-            homePos.z + homeToThirdDir.z * t2
-        );
-        
-        thirdBaseLinePoints.push(thirdBaseLineEnd);
+        // For the third base line, we'll go straight right from home plate to the edge of fair territory
+        thirdBaseLinePoints.push(new THREE.Vector3(fairHalfSize, 0.03, homePos.z));
         
         const thirdBaseLineGeometry = new THREE.BufferGeometry().setFromPoints(thirdBaseLinePoints);
         const thirdBaseLine = new THREE.Line(thirdBaseLineGeometry, new THREE.LineBasicMaterial({ color: 0xFFFFFF, linewidth: 2 }));
