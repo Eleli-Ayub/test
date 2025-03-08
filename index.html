@@ -347,9 +347,10 @@
                 context.textBaseline = 'middle';
                 
                 let label = '';
-                if (type === 'home') label = 'H';
-                else if (type === 'runners') label = 'R';
-                else if (type === 'first') label = '1';
+                if (type === 'home') label = 'F';
+                else if (type === 'runner-home') label = 'R';
+                else if (type === 'runners') label = '1R';
+                else if (type === 'first') label = '1F';
                 else if (type === 'second') label = '2';
                 else if (type === 'third') label = '3';
                 
@@ -384,15 +385,20 @@
             
             // Home plate (with special shape for home)
             const homeBase = createBase(
-                new THREE.Vector3(homePos.x, 0, homePos.z),
+                new THREE.Vector3(homePos.x - BASE_SIZE/2, 0, homePos.z + BASE_SIZE/2),
                 'home'
             );
+            const runnerHomeBase = createBase(
+                new THREE.Vector3(homePos.x + BASE_SIZE/2, 0, homePos.z + BASE_SIZE/2),
+                'runner-home'
+            );
+            scene.add(runnerHomeBase);
             scene.add(homeBase);
             
             // First base (in fair territory) - now at the top-right corner
             
             const thirdBase = createBase(
-                new THREE.Vector3(thirdBaseCorner.x - BASE_SIZE/2, 0, thirdBaseCorner.z - BASE_SIZE/2),
+                new THREE.Vector3(thirdBaseCorner.x - BASE_SIZE/2, 0, thirdBaseCorner.z + BASE_SIZE/2),
                 'third'
             );
             scene.add(thirdBase);
@@ -430,7 +436,7 @@
             
             // Second base
             const secondBase = createBase(
-                new THREE.Vector3(secondBaseCorner.x + BASE_SIZE/2, 0, secondBaseCorner.z - BASE_SIZE/2),
+                new THREE.Vector3(secondBaseCorner.x - BASE_SIZE/2, 0, secondBaseCorner.z + BASE_SIZE/2),
                 'second'
             );
             scene.add(secondBase);
