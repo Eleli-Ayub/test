@@ -791,7 +791,7 @@
             const batter = createBatter();
             scene.add(batter);
             
-            // Add HTML buttons for triggering and stopping the animation
+            // Add HTML buttons for controlling the animation
             function addAnimationButtons() {
                 // Create button container
                 const buttonContainer = document.createElement('div');
@@ -804,18 +804,18 @@
                 buttonContainer.style.gap = '10px';
                 document.body.appendChild(buttonContainer);
                 
-                // Create play button
-                const playButton = document.createElement('button');
-                playButton.textContent = 'Play Baseball5';
-                playButton.style.padding = '10px 20px';
-                playButton.style.fontSize = '16px';
-                playButton.style.backgroundColor = '#FF4500';
-                playButton.style.color = 'white';
-                playButton.style.border = 'none';
-                playButton.style.borderRadius = '5px';
-                playButton.style.cursor = 'pointer';
-                playButton.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-                buttonContainer.appendChild(playButton);
+                // Create start button
+                const startButton = document.createElement('button');
+                startButton.textContent = 'Start';
+                startButton.style.padding = '10px 20px';
+                startButton.style.fontSize = '16px';
+                startButton.style.backgroundColor = '#FF4500';
+                startButton.style.color = 'white';
+                startButton.style.border = 'none';
+                startButton.style.borderRadius = '5px';
+                startButton.style.cursor = 'pointer';
+                startButton.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+                buttonContainer.appendChild(startButton);
                 
                 // Create stop button
                 const stopButton = document.createElement('button');
@@ -828,29 +828,40 @@
                 stopButton.style.borderRadius = '5px';
                 stopButton.style.cursor = 'pointer';
                 stopButton.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-                stopButton.style.display = 'none'; // Initially hidden
                 buttonContainer.appendChild(stopButton);
                 
+                // Create resume button
+                const resumeButton = document.createElement('button');
+                resumeButton.textContent = 'Resume';
+                resumeButton.style.padding = '10px 20px';
+                resumeButton.style.fontSize = '16px';
+                resumeButton.style.backgroundColor = '#009900';
+                resumeButton.style.color = 'white';
+                resumeButton.style.border = 'none';
+                resumeButton.style.borderRadius = '5px';
+                resumeButton.style.cursor = 'pointer';
+                resumeButton.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+                buttonContainer.appendChild(resumeButton);
+                
                 // Add hover effects
-                playButton.addEventListener('mouseover', function() {
-                    this.style.backgroundColor = '#FF6A33';
-                });
-                playButton.addEventListener('mouseout', function() {
-                    this.style.backgroundColor = '#FF4500';
+                const buttons = [startButton, stopButton, resumeButton];
+                const hoverColors = ['#FF6A33', '#FF0000', '#00BB00'];
+                const normalColors = ['#FF4500', '#CC0000', '#009900'];
+                
+                buttons.forEach((button, index) => {
+                    button.addEventListener('mouseover', function() {
+                        this.style.backgroundColor = hoverColors[index];
+                    });
+                    button.addEventListener('mouseout', function() {
+                        this.style.backgroundColor = normalColors[index];
+                    });
                 });
                 
-                stopButton.addEventListener('mouseover', function() {
-                    this.style.backgroundColor = '#FF0000';
-                });
-                stopButton.addEventListener('mouseout', function() {
-                    this.style.backgroundColor = '#CC0000';
-                });
-                
-                return { playButton, stopButton };
+                return { startButton, stopButton, resumeButton };
             }
             
             // Create the buttons
-            const { playButton, stopButton } = addAnimationButtons();
+            const { startButton, stopButton, resumeButton } = addAnimationButtons();
             
             // Add animation of ball from batting box to third base player to first base player
             // with batter running to first base (triggered by button)
@@ -896,17 +907,27 @@
                     -INFIELD_SIZE/2
                 );
                 
+                const secondBasePosition = new THREE.Vector3(
+                    0,
+                    0,
+                    -INFIELD_SIZE/2
+                );
+                
                 // Animation parameters
                 const segmentDuration = 1.5; // seconds per segment
                 const maxHeight = 1.5; // maximum height of the arc
                 let animationTime = 0;
-                let currentSegment = 0; // 0: batting box to third, 1: third to first, 2: first to third
+                let currentSegment = 0; // 0: batting box to third, 1: third to first
                 let batterRunning = false; // Flag to track if batter has started running
                 let batterReachedBase = false; // Flag to track if batter has reached first base
                 let resetAnimation = false; // Flag to reset the entire animation
-                const resetDelay = 2.0; // Seconds to wait before resetting
+                const resetDelay = 0.5; // Seconds to wait before resetting
                 let resetTimer = 0;
                 let animationActive = false; // Flag to track if animation is currently running
+                let animationPaused = false; // Flag to track if animation is paused
+                
+                // Store animation state for pause/resume
+                let savedState = null;
                 
                 // Function to reset animation state
                 function resetAnimationState() {
@@ -917,6 +938,8 @@
                     batterReachedBase = false;
                     resetAnimation = false;
                     resetTimer = 0;
+                    animationPaused = false;
+                    savedState = null;
                     
                     // Reset ball position and visibility
                     ball.position.copy(battingBoxPosition);
@@ -933,16 +956,51 @@
                     // End animation
                     animationActive = false;
                     
-                    // Update buttons
-                    playButton.disabled = false;
-                    playButton.textContent = 'Play Baseball5';
-                    playButton.style.display = 'block';
-                    stopButton.style.display = 'none';
+                    // Update button states
+                    startButton.disabled = false;
+                    stopButton.disabled = true;
+                    resumeButton.disabled = true;
+                }
+                
+                // Function to save current animation state
+                function saveAnimationState() {
+                    savedState = {
+                        animationTime,
+                        currentSegment,
+                        batterRunning,
+                        batterReachedBase,
+                        resetAnimation,
+                        resetTimer,
+                        ballPosition: ball.position.clone(),
+                        ballVisible: ball.visible,
+                        batterPosition: batter.position.clone(),
+                        batterRotation: batter.rotation.y
+                    };
+                }
+                
+                // Function to restore animation state
+                function restoreAnimationState() {
+                    if (!savedState) return false;
+                    
+                    animationTime = savedState.animationTime;
+                    currentSegment = savedState.currentSegment;
+                    batterRunning = savedState.batterRunning;
+                    batterReachedBase = savedState.batterReachedBase;
+                    resetAnimation = savedState.resetAnimation;
+                    resetTimer = savedState.resetTimer;
+                    
+                    ball.position.copy(savedState.ballPosition);
+                    ball.visible = savedState.ballVisible;
+                    
+                    batter.position.copy(savedState.batterPosition);
+                    batter.rotation.y = savedState.batterRotation;
+                    
+                    return true;
                 }
                 
                 // Animation function
                 function animateBallAndBatter(time) {
-                    if (!animationActive) return;
+                    if (!animationActive || animationPaused) return;
                     
                     const deltaTime = clock.getDelta();
                     
@@ -963,7 +1021,7 @@
                         animationTime = 0;
                         currentSegment++;
                         
-                        // MODIFIED: End animation after ball reaches first base player
+                        // End animation after ball reaches first base player
                         if (currentSegment > 1) {
                             resetAnimation = true;
                             return;
@@ -1022,12 +1080,17 @@
                     requestAnimationFrame(animateBallAndBatter);
                 }
                 
-                // Button click handlers
-                playButton.addEventListener('click', function() {
+                // Initialize button states
+                stopButton.disabled = true;
+                resumeButton.disabled = true;
+                
+                // Start button click handler
+                startButton.addEventListener('click', function() {
                     if (animationActive) return;
                     
                     // Start animation
                     animationActive = true;
+                    animationPaused = false;
                     ball.visible = true;
                     ball.position.copy(battingBoxPosition);
                     
@@ -1048,9 +1111,10 @@
                     resetAnimation = false;
                     resetTimer = 0;
                     
-                    // Update buttons
-                    this.style.display = 'none';
-                    stopButton.style.display = 'block';
+                    // Update button states
+                    this.disabled = true;
+                    stopButton.disabled = false;
+                    resumeButton.disabled = true;
                     
                     // Start animation loop
                     requestAnimationFrame(animateBallAndBatter);
@@ -1058,7 +1122,37 @@
                 
                 // Stop button click handler
                 stopButton.addEventListener('click', function() {
-                    resetAnimationState();
+                    if (!animationActive) return;
+                    
+                    if (animationPaused) {
+                        // If already paused, fully stop and reset
+                        resetAnimationState();
+                    } else {
+                        // Pause the animation and save state
+                        animationPaused = true;
+                        saveAnimationState();
+                        
+                        // Update button states
+                        startButton.disabled = true;
+                        stopButton.disabled = false;
+                        resumeButton.disabled = false;
+                    }
+                });
+                
+                // Resume button click handler
+                resumeButton.addEventListener('click', function() {
+                    if (!animationPaused) return;
+                    
+                    // Resume animation
+                    animationPaused = false;
+                    
+                    // Update button states
+                    startButton.disabled = true;
+                    stopButton.disabled = false;
+                    resumeButton.disabled = true;
+                    
+                    // Continue animation loop
+                    requestAnimationFrame(animateBallAndBatter);
                 });
                 
                 return ball;
