@@ -537,7 +537,7 @@
             bottomFence.castShadow = true;
             scene.add(bottomFence);
 
-            // Create a sporty player with t-shirt and shorts
+            // Create a sporty player with t-shirt and shorts (simplified arms, no ball)
             function createPlayer() {
                 const playerGroup = new THREE.Group();
                 
@@ -618,60 +618,23 @@
                 rightShoe.position.set(0.1, -0.2, -0.15);
                 playerGroup.add(rightShoe);
                 
-                // Create the player arms (t-shirt sleeves showing)
-                const upperArmGeometry = new THREE.CylinderGeometry(0.07, 0.06, 0.2, 16);
-                const forearmGeometry = new THREE.CylinderGeometry(0.06, 0.05, 0.25, 16);
+                // Create simplified arms (straight cylinders)
+                const armGeometry = new THREE.CylinderGeometry(0.06, 0.05, 0.5, 16);
                 
-                // Left upper arm (t-shirt sleeve)
-                const leftUpperArm = new THREE.Mesh(upperArmGeometry, tshirtMaterial);
-                leftUpperArm.position.set(-0.28, 0.75, 0);
-                leftUpperArm.rotation.z = Math.PI * 0.15; // Slightly raised
-                playerGroup.add(leftUpperArm);
+                // Left arm (t-shirt color for upper, skin for lower)
+                const leftArm = new THREE.Mesh(armGeometry, skinMaterial);
+                leftArm.position.set(-0.3, 0.65, 0);
+                leftArm.rotation.z = Math.PI * 0.25; // Angled outward
+                playerGroup.add(leftArm);
                 
-                // Left forearm (exposed skin)
-                const leftForearm = new THREE.Mesh(forearmGeometry, skinMaterial);
-                leftForearm.position.set(-0.38, 0.6, 0.1);
-                leftForearm.rotation.z = Math.PI * 0.3; // Bent at elbow
-                leftForearm.rotation.y = Math.PI * 0.2; // Rotated forward
-                playerGroup.add(leftForearm);
-                
-                // Right upper arm (t-shirt sleeve)
-                const rightUpperArm = new THREE.Mesh(upperArmGeometry, tshirtMaterial);
-                rightUpperArm.position.set(0.28, 0.75, 0);
-                rightUpperArm.rotation.z = -Math.PI * 0.3; // Raised higher
-                rightUpperArm.rotation.y = -Math.PI * 0.2; // Rotated back
-                playerGroup.add(rightUpperArm);
-                
-                // Right forearm (exposed skin)
-                const rightForearm = new THREE.Mesh(forearmGeometry, skinMaterial);
-                rightForearm.position.set(0.38, 0.85, -0.1);
-                rightForearm.rotation.z = -Math.PI * 0.1; // Extended for throw
-                rightForearm.rotation.y = -Math.PI * 0.3; // Rotated back
-                playerGroup.add(rightForearm);
+                // Right arm (t-shirt color for upper, skin for lower)
+                const rightArm = new THREE.Mesh(armGeometry, skinMaterial);
+                rightArm.position.set(0.3, 0.65, 0);
+                rightArm.rotation.z = -Math.PI * 0.25; // Angled outward
+                playerGroup.add(rightArm);
                 
                 // Create hands
                 const handGeometry = new THREE.SphereGeometry(0.05, 16, 16);
-                
-                // Left hand
-                const leftHand = new THREE.Mesh(handGeometry, skinMaterial);
-                leftHand.position.set(-0.48, 0.5, 0.15);
-                playerGroup.add(leftHand);
-                
-                // Right hand
-                const rightHand = new THREE.Mesh(handGeometry, skinMaterial);
-                rightHand.position.set(0.48, 0.9, -0.2);
-                playerGroup.add(rightHand);
-                
-                // Ball
-                const ballGeometry = new THREE.SphereGeometry(0.06, 16, 16);
-                const ballMaterial = new THREE.MeshStandardMaterial({ 
-                    color: 0xFFFFFF, // White ball
-                    roughness: 0.5,
-                    metalness: 0.2
-                });
-                const ball = new THREE.Mesh(ballGeometry, ballMaterial);
-                ball.position.set(0.5, 0.9, -0.25);
-                playerGroup.add(ball);
                 
                 // Add a sporty cap
                 const capGeometry = new THREE.CylinderGeometry(0.17, 0.17, 0.08, 16);
