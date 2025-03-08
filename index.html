@@ -741,41 +741,41 @@
             }
             
             // Add first player to the scene - positioned closer to second base
-            const player1 = createPlayer();
+            const midfieldPlayer = createPlayer();
             // Move player closer to second base (top-left corner of infield)
-            player1.position.set(-INFIELD_SIZE/9, 0, INFIELD_SIZE/9);
+            midfieldPlayer.position.set(-INFIELD_SIZE/9, 0, INFIELD_SIZE/9);
             // Rotate to face toward home plate
-            player1.rotation.y = Math.PI * 0.8; // Adjusted rotation to face home plate from new position
-            scene.add(player1);
+            midfieldPlayer.rotation.y = Math.PI * 0.8; // Adjusted rotation to face home plate from new position
+            scene.add(midfieldPlayer);
             
             // Create a first base player near first base (corrected position)
-            const player2 = createPlayer();
+            const thirdBasePlayer = createPlayer();
             // Move player closer to second base (top-left corner of infield)
-            player2.position.set(INFIELD_SIZE/2.5, 0, INFIELD_SIZE/1.9);
+            thirdBasePlayer.position.set(INFIELD_SIZE/2.5, 0, INFIELD_SIZE/1.9);
             // Rotate to face toward home plate
-            player2.rotation.y = Math.PI * 1; // Adjusted rotation to face home plate from new position
-            scene.add(player2);
+            thirdBasePlayer.rotation.y = Math.PI * 1; // Adjusted rotation to face home plate from new position
+            scene.add(thirdBasePlayer);
 
-            const player3 = createPlayer();
+            const firstBasePlayer = createPlayer();
             // Move player closer to second base (top-left corner of infield)
-            player3.position.set(-INFIELD_SIZE/1.9, 0, -INFIELD_SIZE/2.7);
+            firstBasePlayer.position.set(-INFIELD_SIZE/1.9, 0, -INFIELD_SIZE/2.7);
             // Rotate to face toward home plate
-            player2.rotation.y = Math.PI * 1.5; // Adjusted rotation to face home plate from new position
-            scene.add(player3);
+            firstBasePlayer.rotation.y = Math.PI * 0.5; // Adjusted rotation to face home plate from new position
+            scene.add(firstBasePlayer);
 
-            const player4 = createPlayer();
+            const secondBasePlayer = createPlayer();
             // Move player closer to second base (top-left corner of infield)
-            player4.position.set(-INFIELD_SIZE/1.6, 0, INFIELD_SIZE/9);
+            secondBasePlayer.position.set(-INFIELD_SIZE/1.6, 0, INFIELD_SIZE/9);
             // Rotate to face toward home plate
-            player4.rotation.y = Math.PI * 1.5; // Adjusted rotation to face home plate from new position
-            scene.add(player4);
+            secondBasePlayer.rotation.y = Math.PI * 0.7; // Adjusted rotation to face home plate from new position
+            scene.add(secondBasePlayer);
 
-            const player5 = createPlayer();
+            const shortstopPlayer = createPlayer();
             // Move player closer to second base (top-left corner of infield)
-            player5.position.set(-INFIELD_SIZE/9, 0, INFIELD_SIZE/1.6);
+            shortstopPlayer.position.set(-INFIELD_SIZE/9, 0, INFIELD_SIZE/1.6);
             // Rotate to face toward home plate
-            player2.rotation.y = Math.PI * 0.75; // Adjusted rotation to face home plate from new position
-            scene.add(player5);
+            shortstopPlayer.rotation.y = Math.PI * 0.9; // Adjusted rotation to face home plate from new position
+            scene.add(shortstopPlayer);
             
            
         }
