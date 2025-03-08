@@ -776,13 +776,13 @@
                 
                 // Position in batting box
                 playerGroup.position.set(
-                    homePos.x - BATTERS_BOX_SIZE/2 + 0.5, // Center of batting box
+                    homePos.x + BATTERS_BOX_SIZE/2, // Center of batting box
                     0,
                     homePos.z - BATTERS_BOX_SIZE/2 + 0.5
                 );
                 
                 // Rotate to face the field
-                playerGroup.rotation.y = Math.PI * 0.25;
+                playerGroup.rotation.y = Math.PI * 1.5;
                 
                 return playerGroup;
             }
