@@ -791,8 +791,46 @@
             const batter = createBatter();
             scene.add(batter);
             
+            // Add HTML button for triggering the animation
+            function addAnimationButton() {
+                // Create button container
+                const buttonContainer = document.createElement('div');
+                buttonContainer.style.position = 'absolute';
+                buttonContainer.style.bottom = '20px';
+                buttonContainer.style.left = '50%';
+                buttonContainer.style.transform = 'translateX(-50%)';
+                buttonContainer.style.zIndex = '1000';
+                document.body.appendChild(buttonContainer);
+                
+                // Create button
+                const button = document.createElement('button');
+                button.textContent = 'BALL Hitted three';
+                button.style.padding = '10px 20px';
+                button.style.fontSize = '16px';
+                button.style.backgroundColor = '#FF4500';
+                button.style.color = 'white';
+                button.style.border = 'none';
+                button.style.borderRadius = '5px';
+                button.style.cursor = 'pointer';
+                button.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+                buttonContainer.appendChild(button);
+                
+                // Add hover effect
+                button.addEventListener('mouseover', function() {
+                    this.style.backgroundColor = '#FF6A33';
+                });
+                button.addEventListener('mouseout', function() {
+                    this.style.backgroundColor = '#FF4500';
+                });
+                
+                return button;
+            }
+            
+            // Create the button
+            const playButton = addAnimationButton();
+            
             // Add animation of ball from batting box to third base player to first base player
-            // with batter running to first base
+            // with batter running to first base (triggered by button)
             function createBallAndBatterAnimation() {
                 // Create the ball
                 const ballGeometry = new THREE.SphereGeometry(0.06, 16, 16);
@@ -803,6 +841,8 @@
                 });
                 const ball = new THREE.Mesh(ballGeometry, ballMaterial);
                 ball.castShadow = true;
+                ball.visible = false; // Initially hidden
+                scene.add(ball);
                 
                 // Define positions for the animation sequence
                 // 1. Batting box position (starting point)
@@ -833,10 +873,6 @@
                     -INFIELD_SIZE/2
                 );
                 
-                // Set initial position
-                ball.position.copy(battingBoxPosition);
-                scene.add(ball);
-                
                 // Animation parameters
                 const segmentDuration = 1.5; // seconds per segment
                 const maxHeight = 1.5; // maximum height of the arc
@@ -847,9 +883,12 @@
                 let resetAnimation = false; // Flag to reset the entire animation
                 const resetDelay = 2.0; // Seconds to wait before resetting
                 let resetTimer = 0;
+                let animationActive = false; // Flag to track if animation is currently running
                 
                 // Animation function
                 function animateBallAndBatter(time) {
+                    if (!animationActive) return;
+                    
                     const deltaTime = clock.getDelta();
                     
                     // Check if we need to reset the entire animation
@@ -875,11 +914,13 @@
                             );
                             batter.rotation.y = Math.PI * 0.25;
                             
-                            // Make batter visible again
-                            batter.visible = true;
+                            // End animation
+                            animationActive = false;
+                            ball.visible = false;
+                            playButton.disabled = false;
+                            playButton.textContent = 'Play Baseball5';
+                            return;
                         }
-                        requestAnimationFrame(animateBallAndBatter);
-                        return;
                     }
                     
                     // Update animation time
@@ -890,15 +931,9 @@
                         animationTime = 0;
                         currentSegment++;
                         
-                        // Start batter running after ball is hit
-                        if (currentSegment === 1) {
-                            batterRunning = true;
-                        }
-                        
-                        // Reset animation after completing the cycle
-                        if (currentSegment > 2) {
+                        // MODIFIED: End animation after ball reaches first base player
+                        if (currentSegment > 1) {
                             resetAnimation = true;
-                            requestAnimationFrame(animateBallAndBatter);
                             return;
                         }
                     }
@@ -917,10 +952,6 @@
                         // Third base player to first base player
                         startPos = thirdBasePlayerPosition;
                         endPos = firstBasePlayerPosition;
-                    } else {
-                        // First base player back to third base player
-                        startPos = firstBasePlayerPosition;
-                        endPos = thirdBasePlayerPosition;
                     }
                     
                     // Linear interpolation for x and z
@@ -937,7 +968,7 @@
                     // Animate batter running to first base
                     if (batterRunning && !batterReachedBase) {
                         // Calculate running progress (slower than the ball)
-                        const runProgress = Math.min(1.0, (animationTime + (currentSegment - 1) * segmentDuration) / (segmentDuration * 2));
+                        const runProgress = Math.min(1.0, (animationTime + currentSegment * segmentDuration) / (segmentDuration * 2));
                         
                         // Move batter toward first base
                         batter.position.x = battingBoxPosition.x + (firstBasePosition.x - battingBoxPosition.x) * runProgress;
@@ -959,8 +990,39 @@
                     requestAnimationFrame(animateBallAndBatter);
                 }
                 
-                // Start animation
-                requestAnimationFrame(animateBallAndBatter);
+                // Button click handler to start animation
+                playButton.addEventListener('click', function() {
+                    if (animationActive) return;
+                    
+                    // Start animation
+                    animationActive = true;
+                    ball.visible = true;
+                    ball.position.copy(battingBoxPosition);
+                    
+                    // Reset batter position
+                    batter.position.set(
+                        homePos.x - BATTERS_BOX_SIZE/2 + 0.5,
+                        0,
+                        homePos.z - BATTERS_BOX_SIZE/2 + 0.5
+                    );
+                    batter.rotation.y = Math.PI * 0.25;
+                    batter.visible = true;
+                    
+                    // Reset animation parameters
+                    animationTime = 0;
+                    currentSegment = 0;
+                    batterRunning = true; // Start running immediately
+                    batterReachedBase = false;
+                    resetAnimation = false;
+                    resetTimer = 0;
+                    
+                    // Disable button during animation
+                    this.disabled = true;
+                    this.textContent = 'Playing...';
+                    
+                    // Start animation loop
+                    requestAnimationFrame(animateBallAndBatter);
+                });
                 
                 return ball;
             }
@@ -968,7 +1030,7 @@
             // Create a clock for timing animations
             const clock = new THREE.Clock();
             
-            // Add the ball and batter animation
+            // Add the ball and batter animation (triggered by button)
             const animatedBall = createBallAndBatterAnimation();
         }
         
