@@ -395,7 +395,7 @@
             scene.add(runnerHomeBase);
             scene.add(homeBase);
             
-            // First base (in fair territory) - now at the top-right corner
+            // third  base (in fair territory) - now at the top-right corner
             
             const thirdBase = createBase(
                 new THREE.Vector3(thirdBaseCorner.x - BASE_SIZE/2, 0, thirdBaseCorner.z + BASE_SIZE/2),
@@ -536,6 +536,248 @@
             bottomFence.position.set(-2.25, fenceHeight/2, -FAIR_TERRITORY_SIZE/2 - fenceThickness/2);
             bottomFence.castShadow = true;
             scene.add(bottomFence);
+
+            // Create a sporty player with t-shirt and shorts
+            function createPlayer() {
+                const playerGroup = new THREE.Group();
+                
+                // Create the player body (athletic torso with t-shirt)
+                const bodyGeometry = new THREE.CylinderGeometry(0.25, 0.22, 0.6, 16);
+                const tshirtMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0x00BFFF, // Bright blue t-shirt
+                    roughness: 0.8,
+                    metalness: 0.1
+                });
+                const body = new THREE.Mesh(bodyGeometry, tshirtMaterial);
+                body.position.y = 0.65; // Position above ground
+                playerGroup.add(body);
+                
+                // Create the player head (sphere)
+                const headGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+                const skinMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0xE0AC69, // Skin tone
+                    roughness: 0.7,
+                    metalness: 0.1
+                });
+                const head = new THREE.Mesh(headGeometry, skinMaterial);
+                head.position.y = 1.1; // Position above body
+                playerGroup.add(head);
+                
+                // Create the player shorts (boxier, shorter than pants)
+                const shortsGeometry = new THREE.BoxGeometry(0.28, 0.25, 0.22);
+                const shortsMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0x333333, // Dark shorts
+                    roughness: 0.7,
+                    metalness: 0.1
+                });
+                const shorts = new THREE.Mesh(shortsGeometry, shortsMaterial);
+                shorts.position.y = 0.3; // Position below torso
+                playerGroup.add(shorts);
+                
+                // Create the player legs (exposed below shorts)
+                const thighGeometry = new THREE.CylinderGeometry(0.08, 0.07, 0.25, 16);
+                const calfGeometry = new THREE.CylinderGeometry(0.07, 0.05, 0.25, 16);
+                
+                // Left thigh - slightly bent for athletic pose
+                const leftThigh = new THREE.Mesh(thighGeometry, skinMaterial);
+                leftThigh.position.set(-0.1, 0.15, 0.05);
+                leftThigh.rotation.x = Math.PI * 0.05; // Slight forward bend
+                playerGroup.add(leftThigh);
+                
+                // Left calf
+                const leftCalf = new THREE.Mesh(calfGeometry, skinMaterial);
+                leftCalf.position.set(-0.1, -0.05, 0.1);
+                playerGroup.add(leftCalf);
+                
+                // Right thigh - in stride position
+                const rightThigh = new THREE.Mesh(thighGeometry, skinMaterial);
+                rightThigh.position.set(0.1, 0.15, -0.05);
+                rightThigh.rotation.x = -Math.PI * 0.1; // Backward stride
+                playerGroup.add(rightThigh);
+                
+                // Right calf
+                const rightCalf = new THREE.Mesh(calfGeometry, skinMaterial);
+                rightCalf.position.set(0.1, -0.05, -0.1);
+                playerGroup.add(rightCalf);
+                
+                // Create athletic shoes
+                const shoeGeometry = new THREE.BoxGeometry(0.1, 0.05, 0.2);
+                const shoeMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0xFFFFFF, // White athletic shoes
+                    roughness: 0.7,
+                    metalness: 0.1
+                });
+                
+                // Left shoe
+                const leftShoe = new THREE.Mesh(shoeGeometry, shoeMaterial);
+                leftShoe.position.set(-0.1, -0.2, 0.15);
+                playerGroup.add(leftShoe);
+                
+                // Right shoe
+                const rightShoe = new THREE.Mesh(shoeGeometry, shoeMaterial);
+                rightShoe.position.set(0.1, -0.2, -0.15);
+                playerGroup.add(rightShoe);
+                
+                // Create the player arms (t-shirt sleeves showing)
+                const upperArmGeometry = new THREE.CylinderGeometry(0.07, 0.06, 0.2, 16);
+                const forearmGeometry = new THREE.CylinderGeometry(0.06, 0.05, 0.25, 16);
+                
+                // Left upper arm (t-shirt sleeve)
+                const leftUpperArm = new THREE.Mesh(upperArmGeometry, tshirtMaterial);
+                leftUpperArm.position.set(-0.28, 0.75, 0);
+                leftUpperArm.rotation.z = Math.PI * 0.15; // Slightly raised
+                playerGroup.add(leftUpperArm);
+                
+                // Left forearm (exposed skin)
+                const leftForearm = new THREE.Mesh(forearmGeometry, skinMaterial);
+                leftForearm.position.set(-0.38, 0.6, 0.1);
+                leftForearm.rotation.z = Math.PI * 0.3; // Bent at elbow
+                leftForearm.rotation.y = Math.PI * 0.2; // Rotated forward
+                playerGroup.add(leftForearm);
+                
+                // Right upper arm (t-shirt sleeve)
+                const rightUpperArm = new THREE.Mesh(upperArmGeometry, tshirtMaterial);
+                rightUpperArm.position.set(0.28, 0.75, 0);
+                rightUpperArm.rotation.z = -Math.PI * 0.3; // Raised higher
+                rightUpperArm.rotation.y = -Math.PI * 0.2; // Rotated back
+                playerGroup.add(rightUpperArm);
+                
+                // Right forearm (exposed skin)
+                const rightForearm = new THREE.Mesh(forearmGeometry, skinMaterial);
+                rightForearm.position.set(0.38, 0.85, -0.1);
+                rightForearm.rotation.z = -Math.PI * 0.1; // Extended for throw
+                rightForearm.rotation.y = -Math.PI * 0.3; // Rotated back
+                playerGroup.add(rightForearm);
+                
+                // Create hands
+                const handGeometry = new THREE.SphereGeometry(0.05, 16, 16);
+                
+                // Left hand
+                const leftHand = new THREE.Mesh(handGeometry, skinMaterial);
+                leftHand.position.set(-0.48, 0.5, 0.15);
+                playerGroup.add(leftHand);
+                
+                // Right hand
+                const rightHand = new THREE.Mesh(handGeometry, skinMaterial);
+                rightHand.position.set(0.48, 0.9, -0.2);
+                playerGroup.add(rightHand);
+                
+                // Ball
+                const ballGeometry = new THREE.SphereGeometry(0.06, 16, 16);
+                const ballMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0xFFFFFF, // White ball
+                    roughness: 0.5,
+                    metalness: 0.2
+                });
+                const ball = new THREE.Mesh(ballGeometry, ballMaterial);
+                ball.position.set(0.5, 0.9, -0.25);
+                playerGroup.add(ball);
+                
+                // Add a sporty cap
+                const capGeometry = new THREE.CylinderGeometry(0.17, 0.17, 0.08, 16);
+                const capBrimGeometry = new THREE.BoxGeometry(0.3, 0.02, 0.2);
+                const capMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0x00BFFF, // Match t-shirt
+                    roughness: 0.7,
+                    metalness: 0.1
+                });
+                
+                // Cap body
+                const cap = new THREE.Mesh(capGeometry, capMaterial);
+                cap.position.y = 1.2;
+                playerGroup.add(cap);
+                
+                // Cap brim
+                const capBrim = new THREE.Mesh(capBrimGeometry, capMaterial);
+                capBrim.position.set(0, 1.16, 0.12);
+                playerGroup.add(capBrim);
+                
+                // Add t-shirt logo (Baseball5)
+                const logoCanvas = document.createElement('canvas');
+                logoCanvas.width = 128;
+                logoCanvas.height = 128;
+                const logoContext = logoCanvas.getContext('2d');
+                
+                // Fill with t-shirt color
+                logoContext.fillStyle = '#00BFFF';
+                logoContext.fillRect(0, 0, 128, 128);
+                
+                // Add text
+                logoContext.fillStyle = '#FFFFFF';
+                logoContext.font = 'bold 24px Arial';
+                logoContext.textAlign = 'center';
+                logoContext.textBaseline = 'middle';
+                logoContext.fillText('BASEBALL5', 64, 64);
+                
+                // Create texture from canvas
+                const logoTexture = new THREE.CanvasTexture(logoCanvas);
+                
+                // Create a plane for the logo
+                const logoGeometry = new THREE.PlaneGeometry(0.2, 0.1);
+                const logoMaterial = new THREE.MeshBasicMaterial({
+                    map: logoTexture,
+                    transparent: true
+                });
+                
+                const logo = new THREE.Mesh(logoGeometry, logoMaterial);
+                logo.position.set(0, 0.7, 0.31); // Center front of t-shirt
+                logo.rotation.x = Math.PI * 0.05; // Align with t-shirt
+                playerGroup.add(logo);
+                
+                // Position the player in the middle of the field
+                playerGroup.position.set(0, 0, 0);
+                // Rotate slightly to face toward home plate
+                playerGroup.rotation.y = Math.PI * 0.25;
+                
+                // Add shadow casting
+                playerGroup.traverse((object) => {
+                    if (object.isMesh) {
+                        object.castShadow = true;
+                        object.receiveShadow = true;
+                    }
+                });
+                
+                return playerGroup;
+            }
+            
+            // Add first player to the scene - positioned closer to second base
+            const player1 = createPlayer();
+            // Move player closer to second base (top-left corner of infield)
+            player1.position.set(-INFIELD_SIZE/9, 0, INFIELD_SIZE/9);
+            // Rotate to face toward home plate
+            player1.rotation.y = Math.PI * 0.8; // Adjusted rotation to face home plate from new position
+            scene.add(player1);
+            
+            // Create a first base player near first base (corrected position)
+            const player2 = createPlayer();
+            // Move player closer to second base (top-left corner of infield)
+            player2.position.set(INFIELD_SIZE/2.5, 0, INFIELD_SIZE/1.9);
+            // Rotate to face toward home plate
+            player2.rotation.y = Math.PI * 1; // Adjusted rotation to face home plate from new position
+            scene.add(player2);
+
+            const player3 = createPlayer();
+            // Move player closer to second base (top-left corner of infield)
+            player3.position.set(-INFIELD_SIZE/1.9, 0, -INFIELD_SIZE/2.7);
+            // Rotate to face toward home plate
+            player2.rotation.y = Math.PI * 1.5; // Adjusted rotation to face home plate from new position
+            scene.add(player3);
+
+            const player4 = createPlayer();
+            // Move player closer to second base (top-left corner of infield)
+            player4.position.set(-INFIELD_SIZE/1.6, 0, INFIELD_SIZE/9);
+            // Rotate to face toward home plate
+            player4.rotation.y = Math.PI * 1.5; // Adjusted rotation to face home plate from new position
+            scene.add(player4);
+
+            const player5 = createPlayer();
+            // Move player closer to second base (top-left corner of infield)
+            player5.position.set(-INFIELD_SIZE/9, 0, INFIELD_SIZE/1.6);
+            // Rotate to face toward home plate
+            player2.rotation.y = Math.PI * 0.75; // Adjusted rotation to face home plate from new position
+            scene.add(player5);
+            
+           
         }
         
         // Handle window resize
