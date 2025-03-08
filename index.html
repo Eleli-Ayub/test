@@ -21,7 +21,49 @@
         <div class="absolute top-0 left-0 p-4 bg-black bg-opacity-50 rounded-br-lg">
             <h1 class="text-2xl font-bold mb-2">5Base Field</h1>
             <p class="text-sm mb-4">Interactive 3D Visualization</p>
-           
+            
+            <!-- Controls -->
+            <div class="mb-4">
+                <button id="reset-camera" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded mr-2">
+                    Reset View
+                </button>
+                <button id="toggle-legend" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded">
+                    Toggle Legend
+                </button>
+            </div>
+            
+            <!-- Legend -->
+            <div id="legend" class="text-xs bg-black bg-opacity-75 p-2 rounded">
+                <h2 class="font-bold mb-2">Legend</h2>
+                <div class="legend-item">
+                    <div class="legend-color bg-gray-500"></div>
+                    <span>Infield (13m × 13m)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color bg-yellow-500"></div>
+                    <span>Fair Territory (18m × 18m)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color bg-white"></div>
+                    <span>Foul Territory</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color bg-red-500"></div>
+                    <span>No-Hit Zone</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color bg-yellow-300"></div>
+                    <span>Batter's Box (3m × 3m)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color bg-white border-2 border-black"></div>
+                    <span>Bases (50cm × 50cm)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color bg-orange-500"></div>
+                    <span>Safe Area (1.5m)</span>
+                </div>
+            </div>
         </div>
         
         <!-- Instructions -->
@@ -123,7 +165,9 @@
             // Handle window resize
             window.addEventListener('resize', onWindowResize);
             
-            
+            // Add button event listeners
+            document.getElementById('reset-camera').addEventListener('click', resetCamera);
+            document.getElementById('toggle-legend').addEventListener('click', toggleLegend);
             
             // Start animation loop
             animate();
@@ -819,31 +863,6 @@
             // Create the buttons
             const { startButton, stopButton, resumeButton } = addAnimationButtons();
             
-            // Define positions for the bases
-            const homeBasePosition = new THREE.Vector3(
-                homePos.x,
-                0,
-                homePos.z
-            );
-            
-            const firstBasePosition = new THREE.Vector3(
-                INFIELD_SIZE/2, 
-                0,
-                -INFIELD_SIZE/2
-            );
-            
-            const secondBasePosition = new THREE.Vector3(
-                0, 
-                0,
-                -INFIELD_SIZE/2
-            );
-            
-            const thirdBasePosition = new THREE.Vector3(
-                -INFIELD_SIZE/2, 
-                0,
-                -INFIELD_SIZE/2
-            );
-            
             // Add animation of ball from batting box to third base player to first base player
             // with batter running to first base (triggered by button)
             function createBallAndBatterAnimation() {
@@ -889,7 +908,7 @@
                 );
                 
                 const secondBasePosition = new THREE.Vector3(
-                    secondBasePlayer.position.x, 
+                    0, 
                     0,
                     -INFIELD_SIZE/2
                 );
@@ -1218,77 +1237,21 @@
                 resumeButton.addEventListener('click', function() {
                     if (!animationPaused) return;
                     
-                    // If there's a runner on first base, animate movement to second base
+                    // If there's a runner on first base, advance to second
                     if (runnerOnFirst && !runnerOnSecond) {
-                        // Set up animation for runner
-                        let runnerAnimationProgress = 0;
-                        const runnerAnimationDuration = 1.0; // seconds
-                        const animateRunner = function(timestamp) {
-                            // Calculate progress
-                            runnerAnimationProgress += clock.getDelta();
-                            const progress = Math.min(1.0, runnerAnimationProgress / runnerAnimationDuration);
-                            
-                            // Move runner toward second base
-                            runner.position.x = firstBasePosition.x + (secondBasePosition.x - firstBasePosition.x) * progress;
-                            runner.position.z = firstBasePosition.z + (secondBasePosition.z - firstBasePosition.z) * progress;
-                            
-                            // Rotate runner to face running direction
-                            runner.rotation.y = Math.atan2(
-                                secondBasePosition.z - firstBasePosition.z,
-                                secondBasePosition.x - firstBasePosition.x
-                            );
-                            
-                            // Continue animation until complete
-                            if (progress < 1.0) {
-                                requestAnimationFrame(animateRunner);
-                            } else {
-                                // Update flags when animation completes
-                                runnerOnFirst = false;
-                                runnerOnSecond = true;
-                                
-                                // Resume the main animation
-                                resumeMainAnimation();
-                            }
-                        };
-                        
-                        // Start runner animation
-                        requestAnimationFrame(animateRunner);
-                    } else {
-                        // If no runner to animate, resume main animation directly
-                        resumeMainAnimation();
+                        advanceRunnerToSecondBase();
                     }
                     
-                    // Function to resume the main animation
-                    function resumeMainAnimation() {
-                        // Resume animation with a new batter
-                        if (batterReachedBase) {
-                            // Show batter in batting box
-                            batter.visible = true;
-                            
-                            // Reset ball for next play
-                            ball.position.copy(battingBoxPosition);
-                            ball.visible = true;
-                            
-                            // Reset animation parameters for new play
-                            animationTime = 0;
-                            currentSegment = 0;
-                            batterRunning = true;
-                            batterReachedBase = false;
-                            resetAnimation = false;
-                            resetTimer = 0;
-                        }
-                        
-                        // Resume animation
-                        animationPaused = false;
-                        
-                        // Update button states
-                        startButton.disabled = true;
-                        stopButton.disabled = false;
-                        resumeButton.disabled = true;
-                        
-                        // Continue animation loop
-                        requestAnimationFrame(animateBallAndBatter);
-                    }
+                    // Resume animation
+                    animationPaused = false;
+                    
+                    // Update button states
+                    startButton.disabled = true;
+                    stopButton.disabled = false;
+                    resumeButton.disabled = true;
+                    
+                    // Continue animation loop
+                    requestAnimationFrame(animateBallAndBatter);
                 });
                 
                 return ball;
