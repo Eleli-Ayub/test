@@ -521,19 +521,19 @@
             
             // Right fence
             const rightFence = new THREE.Mesh(
-                new THREE.BoxGeometry(fenceThickness, fenceHeight, FAIR_TERRITORY_SIZE),
+                new THREE.BoxGeometry(fenceThickness, fenceHeight, FAIR_TERRITORY_SIZE-4.5),
                 new THREE.MeshStandardMaterial({ color: FENCE_COLOR })
             );
-            rightFence.position.set(FAIR_TERRITORY_SIZE/2 + fenceThickness/2, fenceHeight/2, 0);
+            rightFence.position.set(FAIR_TERRITORY_SIZE/2 - fenceThickness/2, fenceHeight/2, 2.25);
             rightFence.castShadow = true;
             scene.add(rightFence);
             
             // Bottom fence
             const bottomFence = new THREE.Mesh(
-                new THREE.BoxGeometry(FAIR_TERRITORY_SIZE, fenceHeight, fenceThickness),
+                new THREE.BoxGeometry(FAIR_TERRITORY_SIZE-4.5, fenceHeight, fenceThickness),
                 new THREE.MeshStandardMaterial({ color: FENCE_COLOR })
             );
-            bottomFence.position.set(0, fenceHeight/2, -FAIR_TERRITORY_SIZE/2 - fenceThickness/2);
+            bottomFence.position.set(-2.25, fenceHeight/2, -FAIR_TERRITORY_SIZE/2 - fenceThickness/2);
             bottomFence.castShadow = true;
             scene.add(bottomFence);
         }
