@@ -900,7 +900,7 @@
                     firstBasePlayer.position.z + 0.45 * Math.sin(firstBasePlayer.rotation.y)
                 );
                 
-                // First base position (for batter to run to)
+                // Base positions
                 const firstBasePosition = new THREE.Vector3(
                     firstBasePlayer.position.x, 
                     0,
@@ -908,7 +908,7 @@
                 );
                 
                 const secondBasePosition = new THREE.Vector3(
-                    0,
+                    0, 
                     0,
                     -INFIELD_SIZE/2
                 );
@@ -925,9 +925,16 @@
                 let resetTimer = 0;
                 let animationActive = false; // Flag to track if animation is currently running
                 let animationPaused = false; // Flag to track if animation is paused
+                let advancingRunner = false; // Flag for when runner is advancing to second base
+                let runnerOnFirst = false; // Flag to track if there's a runner on first base
+                let runnerOnSecond = false; // Flag to track if there's a runner on second base
+                let runnerAdvanceProgress = 0; // Progress of runner advancing to second base
                 
                 // Store animation state for pause/resume
                 let savedState = null;
+                
+                // Create a clone of the batter to use as the runner
+                let runner = null;
                 
                 // Function to reset animation state
                 function resetAnimationState() {
@@ -939,6 +946,10 @@
                     resetAnimation = false;
                     resetTimer = 0;
                     animationPaused = false;
+                    advancingRunner = false;
+                    runnerOnFirst = false;
+                    runnerOnSecond = false;
+                    runnerAdvanceProgress = 0;
                     savedState = null;
                     
                     // Reset ball position and visibility
@@ -952,6 +963,12 @@
                         homePos.z - BATTERS_BOX_SIZE/2 + 0.5
                     );
                     batter.rotation.y = Math.PI * 0.25;
+                    
+                    // Remove runner if it exists
+                    if (runner) {
+                        scene.remove(runner);
+                        runner = null;
+                    }
                     
                     // End animation
                     animationActive = false;
@@ -974,7 +991,11 @@
                         ballPosition: ball.position.clone(),
                         ballVisible: ball.visible,
                         batterPosition: batter.position.clone(),
-                        batterRotation: batter.rotation.y
+                        batterRotation: batter.rotation.y,
+                        runnerOnFirst,
+                        runnerOnSecond,
+                        runnerPosition: runner ? runner.position.clone() : null,
+                        runnerRotation: runner ? runner.rotation.y : 0
                     };
                 }
                 
@@ -988,6 +1009,8 @@
                     batterReachedBase = savedState.batterReachedBase;
                     resetAnimation = savedState.resetAnimation;
                     resetTimer = savedState.resetTimer;
+                    runnerOnFirst = savedState.runnerOnFirst;
+                    runnerOnSecond = savedState.runnerOnSecond;
                     
                     ball.position.copy(savedState.ballPosition);
                     ball.visible = savedState.ballVisible;
@@ -995,7 +1018,63 @@
                     batter.position.copy(savedState.batterPosition);
                     batter.rotation.y = savedState.batterRotation;
                     
+                    if (savedState.runnerPosition && runner) {
+                        runner.position.copy(savedState.runnerPosition);
+                        runner.rotation.y = savedState.runnerRotation;
+                    }
+                    
                     return true;
+                }
+                
+                // Function to create a runner clone
+                function createRunner() {
+                    // Clone the batter to create a runner
+                    runner = batter.clone();
+                    scene.add(runner);
+                    
+                    // Position at first base
+                    runner.position.copy(firstBasePosition);
+                    
+                    return runner;
+                }
+                
+                // Function to advance runner from first to second base
+                function advanceRunnerToSecondBase() {
+                    if (!runnerOnFirst || runnerOnSecond) return;
+                    
+                    advancingRunner = true;
+                    runnerAdvanceProgress = 0;
+                    
+                    // Start a separate animation loop for the runner
+                    function animateRunnerAdvance() {
+                        if (!advancingRunner) return;
+                        
+                        // Update progress
+                        runnerAdvanceProgress += 0.01;
+                        
+                        // Move runner toward second base
+                        runner.position.x = firstBasePosition.x + (secondBasePosition.x - firstBasePosition.x) * runnerAdvanceProgress;
+                        runner.position.z = firstBasePosition.z + (secondBasePosition.z - firstBasePosition.z) * runnerAdvanceProgress;
+                        
+                        // Rotate runner to face running direction
+                        runner.rotation.y = Math.atan2(
+                            secondBasePosition.z - firstBasePosition.z,
+                            secondBasePosition.x - firstBasePosition.x
+                        );
+                        
+                        // Check if runner has reached second base
+                        if (runnerAdvanceProgress >= 1.0) {
+                            advancingRunner = false;
+                            runnerOnFirst = false;
+                            runnerOnSecond = true;
+                            runner.position.copy(secondBasePosition);
+                        } else {
+                            requestAnimationFrame(animateRunnerAdvance);
+                        }
+                    }
+                    
+                    // Start the runner animation
+                    requestAnimationFrame(animateRunnerAdvance);
                 }
                 
                 // Animation function
@@ -1073,6 +1152,21 @@
                         // Check if batter has reached first base
                         if (runProgress >= 1.0) {
                             batterReachedBase = true;
+                            runnerOnFirst = true;
+                            
+                            // Create a clone of the batter as the runner
+                            if (!runner) {
+                                createRunner();
+                            }
+                            
+                            // Reset batter position for next play
+                            batter.position.set(
+                                homePos.x - BATTERS_BOX_SIZE/2 + 0.5,
+                                0,
+                                homePos.z - BATTERS_BOX_SIZE/2 + 0.5
+                            );
+                            batter.rotation.y = Math.PI * 0.25;
+                            batter.visible = false; // Hide batter until next play
                         }
                     }
                     
@@ -1122,7 +1216,7 @@
                 
                 // Stop button click handler
                 stopButton.addEventListener('click', function() {
-                    if (!animationActive) return;
+                    if (!animationActive && !animationPaused) return;
                     
                     if (animationPaused) {
                         // If already paused, fully stop and reset
@@ -1142,6 +1236,11 @@
                 // Resume button click handler
                 resumeButton.addEventListener('click', function() {
                     if (!animationPaused) return;
+                    
+                    // If there's a runner on first base, advance to second
+                    if (runnerOnFirst && !runnerOnSecond) {
+                        advanceRunnerToSecondBase();
+                    }
                     
                     // Resume animation
                     animationPaused = false;
