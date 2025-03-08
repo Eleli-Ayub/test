@@ -740,8 +740,60 @@
             shortstopPlayer.rotation.y = Math.PI * 0.9; // Adjusted rotation to face home plate from new position
             scene.add(shortstopPlayer);
             
+            // Create a batter (red shirt) in the batting box
+            function createBatter() {
+                // Clone the player creation function but with red shirt
+                const playerGroup = createPlayer();
+                
+                // Change shirt and cap color to red
+                playerGroup.traverse((object) => {
+                    if (object.isMesh) {
+                        // If it's the t-shirt or cap, change the color to red
+                        if (object.material && 
+                            (object.material.color.getHex() === 0x00BFFF || 
+                             object.material.color.getHex() === 0x00BFFF)) {
+                            object.material = object.material.clone(); // Clone the material
+                            object.material.color.setHex(0xFF0000); // Bright red
+                        }
+                    }
+                });
+                
+                // Modify pose to batting stance
+                playerGroup.traverse((object) => {
+                    // Find right arm and adjust to batting position
+                    if (object.isMesh && object.position.x > 0.2 && object.position.y > 0.4 && object.position.y < 0.7) {
+                        // Right arm raised for batting
+                        object.rotation.z = -Math.PI * 0.5; // Raised higher
+                        object.rotation.y = Math.PI * 0.2; // Rotated back
+                    }
+                    // Find left arm and adjust to batting position
+                    if (object.isMesh && object.position.x < -0.2 && object.position.y > 0.4 && object.position.y < 0.7) {
+                        // Left arm raised for batting
+                        object.rotation.z = Math.PI * 0.5; // Raised higher
+                        object.rotation.y = -Math.PI * 0.2; // Rotated back
+                    }
+                });
+                
+                // Position in batting box
+                playerGroup.position.set(
+                    homePos.x - BATTERS_BOX_SIZE/2 + 0.5, // Center of batting box
+                    0,
+                    homePos.z - BATTERS_BOX_SIZE/2 + 0.5
+                );
+                
+                // Rotate to face the field
+                playerGroup.rotation.y = Math.PI * 0.25;
+                
+                return playerGroup;
+            }
+            
+            // Add batter to the scene
+            const batter = createBatter();
+            scene.add(batter);
+            
             // Add animation of ball from batting box to third base player to first base player
-            function createBallAnimation() {
+            // with batter running to first base
+            function createBallAndBatterAnimation() {
                 // Create the ball
                 const ballGeometry = new THREE.SphereGeometry(0.06, 16, 16);
                 const ballMaterial = new THREE.MeshStandardMaterial({ 
@@ -755,9 +807,9 @@
                 // Define positions for the animation sequence
                 // 1. Batting box position (starting point)
                 const battingBoxPosition = new THREE.Vector3(
-                    homePos.x - BATTERS_BOX_SIZE/2, 
+                    homePos.x - BATTERS_BOX_SIZE/2 + 0.5, 
                     0.3, // Slightly above ground
-                    homePos.z - BATTERS_BOX_SIZE/2
+                    homePos.z - BATTERS_BOX_SIZE/2 + 0.5
                 );
                 
                 // 2. Third base player's hand position
@@ -774,25 +826,81 @@
                     firstBasePlayer.position.z + 0.45 * Math.sin(firstBasePlayer.rotation.y)
                 );
                 
+                // First base position (for batter to run to)
+                const firstBasePosition = new THREE.Vector3(
+                    firstBasePlayer.position.x, 
+                    0,
+                    -INFIELD_SIZE/2
+                );
+                
                 // Set initial position
                 ball.position.copy(battingBoxPosition);
                 scene.add(ball);
                 
                 // Animation parameters
-                const segmentDuration = 1.0; // seconds per segment
+                const segmentDuration = 1.5; // seconds per segment
                 const maxHeight = 1.5; // maximum height of the arc
                 let animationTime = 0;
                 let currentSegment = 0; // 0: batting box to third, 1: third to first, 2: first to third
+                let batterRunning = false; // Flag to track if batter has started running
+                let batterReachedBase = false; // Flag to track if batter has reached first base
+                let resetAnimation = false; // Flag to reset the entire animation
+                const resetDelay = 2.0; // Seconds to wait before resetting
+                let resetTimer = 0;
                 
                 // Animation function
-                function animateBall(time) {
+                function animateBallAndBatter(time) {
+                    const deltaTime = clock.getDelta();
+                    
+                    // Check if we need to reset the entire animation
+                    if (resetAnimation) {
+                        resetTimer += deltaTime;
+                        if (resetTimer >= resetDelay) {
+                            // Reset everything
+                            animationTime = 0;
+                            currentSegment = 0;
+                            batterRunning = false;
+                            batterReachedBase = false;
+                            resetAnimation = false;
+                            resetTimer = 0;
+                            
+                            // Reset ball position
+                            ball.position.copy(battingBoxPosition);
+                            
+                            // Reset batter position
+                            batter.position.set(
+                                homePos.x - BATTERS_BOX_SIZE/2 + 0.5,
+                                0,
+                                homePos.z - BATTERS_BOX_SIZE/2 + 0.5
+                            );
+                            batter.rotation.y = Math.PI * 0.25;
+                            
+                            // Make batter visible again
+                            batter.visible = true;
+                        }
+                        requestAnimationFrame(animateBallAndBatter);
+                        return;
+                    }
+                    
                     // Update animation time
-                    animationTime += clock.getDelta();
+                    animationTime += deltaTime;
                     
                     // Check if we need to move to the next segment
                     if (animationTime >= segmentDuration) {
                         animationTime = 0;
-                        currentSegment = (currentSegment + 1) % 3; // Cycle through 3 segments
+                        currentSegment++;
+                        
+                        // Start batter running after ball is hit
+                        if (currentSegment === 1) {
+                            batterRunning = true;
+                        }
+                        
+                        // Reset animation after completing the cycle
+                        if (currentSegment > 2) {
+                            resetAnimation = true;
+                            requestAnimationFrame(animateBallAndBatter);
+                            return;
+                        }
                     }
                     
                     // Calculate progress (0 to 1) within current segment
@@ -820,19 +928,39 @@
                     ball.position.z = startPos.z + (endPos.z - startPos.z) * progress;
                     
                     // Parabolic arc for y (height)
-                    // y = 4 * h * t * (1 - t) creates a parabola with max height h at t=0.5
                     ball.position.y = startPos.y + 4 * maxHeight * progress * (1 - progress);
                     
                     // Add rotation to the ball
                     ball.rotation.x += 0.1;
                     ball.rotation.z += 0.1;
                     
+                    // Animate batter running to first base
+                    if (batterRunning && !batterReachedBase) {
+                        // Calculate running progress (slower than the ball)
+                        const runProgress = Math.min(1.0, (animationTime + (currentSegment - 1) * segmentDuration) / (segmentDuration * 2));
+                        
+                        // Move batter toward first base
+                        batter.position.x = battingBoxPosition.x + (firstBasePosition.x - battingBoxPosition.x) * runProgress;
+                        batter.position.z = battingBoxPosition.z + (firstBasePosition.z - battingBoxPosition.z) * runProgress;
+                        
+                        // Rotate batter to face running direction
+                        batter.rotation.y = Math.atan2(
+                            firstBasePosition.z - battingBoxPosition.z,
+                            firstBasePosition.x - battingBoxPosition.x
+                        );
+                        
+                        // Check if batter has reached first base
+                        if (runProgress >= 1.0) {
+                            batterReachedBase = true;
+                        }
+                    }
+                    
                     // Request next frame
-                    requestAnimationFrame(animateBall);
+                    requestAnimationFrame(animateBallAndBatter);
                 }
                 
                 // Start animation
-                requestAnimationFrame(animateBall);
+                requestAnimationFrame(animateBallAndBatter);
                 
                 return ball;
             }
@@ -840,8 +968,8 @@
             // Create a clock for timing animations
             const clock = new THREE.Clock();
             
-            // Add the ball animation
-            const animatedBall = createBallAnimation();
+            // Add the ball and batter animation
+            const animatedBall = createBallAndBatterAnimation();
         }
         
         // Handle window resize
@@ -876,4 +1004,4 @@
         window.addEventListener('load', init);
     </script>
 </body>
-</html></html>
+</html>
