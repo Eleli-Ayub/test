@@ -740,7 +740,7 @@
             shortstopPlayer.rotation.y = Math.PI * 0.9; // Adjusted rotation to face home plate from new position
             scene.add(shortstopPlayer);
             
-            // Add animation of third base player throwing ball to first base player
+            // Add animation of ball from batting box to third base player to first base player
             function createBallAnimation() {
                 // Create the ball
                 const ballGeometry = new THREE.SphereGeometry(0.06, 16, 16);
@@ -752,54 +752,76 @@
                 const ball = new THREE.Mesh(ballGeometry, ballMaterial);
                 ball.castShadow = true;
                 
-                // Start position - near player1's hand (third base player)
-                const startPosition = new THREE.Vector3(
+                // Define positions for the animation sequence
+                // 1. Batting box position (starting point)
+                const battingBoxPosition = new THREE.Vector3(
+                    homePos.x - BATTERS_BOX_SIZE/2, 
+                    0.3, // Slightly above ground
+                    homePos.z - BATTERS_BOX_SIZE/2
+                );
+                
+                // 2. Third base player's hand position
+                const thirdBasePlayerPosition = new THREE.Vector3(
                     thirdBasePlayer.position.x + 0.45 * Math.cos(thirdBasePlayer.rotation.y),
                     0.45, // Hand height
                     thirdBasePlayer.position.z + 0.45 * Math.sin(thirdBasePlayer.rotation.y)
                 );
                 
-                // End position - near player2's hand (first base player)
-                const endPosition = new THREE.Vector3(
+                // 3. First base player's hand position
+                const firstBasePlayerPosition = new THREE.Vector3(
                     firstBasePlayer.position.x + 0.45 * Math.cos(firstBasePlayer.rotation.y),
                     0.45, // Hand height
                     firstBasePlayer.position.z + 0.45 * Math.sin(firstBasePlayer.rotation.y)
                 );
                 
                 // Set initial position
-                ball.position.copy(startPosition);
+                ball.position.copy(battingBoxPosition);
                 scene.add(ball);
                 
                 // Animation parameters
-                const animationDuration = 1.0; // seconds
-                const maxHeight = 2.0; // maximum height of the arc
+                const segmentDuration = 1.0; // seconds per segment
+                const maxHeight = 1.5; // maximum height of the arc
                 let animationTime = 0;
-                let animationDirection = 1; // 1 for forward, -1 for backward
+                let currentSegment = 0; // 0: batting box to third, 1: third to first, 2: first to third
                 
                 // Animation function
                 function animateBall(time) {
                     // Update animation time
-                    animationTime += animationDirection * clock.getDelta();
+                    animationTime += clock.getDelta();
                     
-                    // Reverse direction when reaching the end
-                    if (animationTime >= animationDuration) {
-                        animationTime = animationDuration;
-                        animationDirection = -1;
-                    } else if (animationTime <= 0) {
+                    // Check if we need to move to the next segment
+                    if (animationTime >= segmentDuration) {
                         animationTime = 0;
-                        animationDirection = 1;
+                        currentSegment = (currentSegment + 1) % 3; // Cycle through 3 segments
                     }
                     
-                    // Calculate progress (0 to 1)
-                    const progress = animationTime / animationDuration;
+                    // Calculate progress (0 to 1) within current segment
+                    const progress = animationTime / segmentDuration;
+                    
+                    // Determine start and end positions for current segment
+                    let startPos, endPos;
+                    
+                    if (currentSegment === 0) {
+                        // Batting box to third base player
+                        startPos = battingBoxPosition;
+                        endPos = thirdBasePlayerPosition;
+                    } else if (currentSegment === 1) {
+                        // Third base player to first base player
+                        startPos = thirdBasePlayerPosition;
+                        endPos = firstBasePlayerPosition;
+                    } else {
+                        // First base player back to third base player
+                        startPos = firstBasePlayerPosition;
+                        endPos = thirdBasePlayerPosition;
+                    }
                     
                     // Linear interpolation for x and z
-                    ball.position.x = startPosition.x + (endPosition.x - startPosition.x) * progress;
-                    ball.position.z = startPosition.z + (endPosition.z - startPosition.z) * progress;
+                    ball.position.x = startPos.x + (endPos.x - startPos.x) * progress;
+                    ball.position.z = startPos.z + (endPos.z - startPos.z) * progress;
                     
                     // Parabolic arc for y (height)
                     // y = 4 * h * t * (1 - t) creates a parabola with max height h at t=0.5
-                    ball.position.y = startPosition.y + 4 * maxHeight * progress * (1 - progress);
+                    ball.position.y = startPos.y + 4 * maxHeight * progress * (1 - progress);
                     
                     // Add rotation to the ball
                     ball.rotation.x += 0.1;
